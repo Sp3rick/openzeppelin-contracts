@@ -71,11 +71,11 @@ interface IMultiVotes is IVotes {
      *
      * NOTE: This function returns only the multi delegation value, defaulted units are not counted
      */
-    function getDelegatedUnits(address account, address delegatee) external returns (uint256);
+    function getDelegatedUnits(address account, address delegatee) external view returns (uint256);
 
     /**
      * @dev Returns number of remaining units that defaulted delegation on `account` has.
      */
-    function getDefaultedUnits(address account, address delegatee) external returns (uint256);
+    function getDefaultedUnits(address account) external view returns (uint256);
 
 }

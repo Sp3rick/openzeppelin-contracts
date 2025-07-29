@@ -9,7 +9,9 @@ import {ECDSA} from "../../utils/cryptography/ECDSA.sol";
 import "./IMultiVotes.sol";
 
 /**
- * @dev Extension of {Votes} that adds support for partial delegation.
+ * @dev Extension of {Votes} adding support for partial delegation.
+ * You can give a fixed amount of voting power to each delegate and select one as "defaulted" wich takes all of the remaining votes
+ * even when avaiable votes changes
  */
 abstract contract MultiVotes is Votes, IMultiVotes {
 
@@ -152,6 +154,8 @@ abstract contract MultiVotes is Votes, IMultiVotes {
     
     /**
      * @dev Add delegates to the multi delegation list or modify units of already exhisting.
+     *
+     * Emits multiple events {IMultiVotes-DelegateAdded} and {IMultiVotes-DelegateModified}.
      */
     function _addDelegates(address account, address[] calldata delegatess, uint256[] calldata unitsList) internal virtual {
         require(delegatess.length == unitsList.length, MultiVotesDelegatesAndUnitsMismatch(delegatess, unitsList));
@@ -223,6 +227,10 @@ abstract contract MultiVotes is Votes, IMultiVotes {
         address delegatee,
         uint256 units
     ) internal virtual returns (uint256 difference, bool refunded) {
+        if(units == 0) {
+            return (0, false);
+        }
+        
         emit DelegateModified(account, delegatee, _delegatesUnits[account][delegatee], units);
                 
         if(_delegatesUnits[account][delegatee] > units) {
@@ -240,6 +248,8 @@ abstract contract MultiVotes is Votes, IMultiVotes {
 
     /**
      * @dev Remove a delegate from multi delegations list.
+     *
+     * Emits event {IMultiVotes-DelegateRemoved}.
      */
     function _removeDelegate(address account, address delegatee) internal virtual {
         if(!_accountHasDelegate(account, delegatee)) return;
@@ -281,7 +291,7 @@ abstract contract MultiVotes is Votes, IMultiVotes {
      *
      * NOTE: This function returns only the multi delegation value, defaulted units are not counted
      */
-    function getDelegatedUnits(address account, address delegatee) public virtual returns (uint256) {
+    function getDelegatedUnits(address account, address delegatee) public view virtual returns (uint256) {
         if(!_accountHasDelegate(account, delegatee)) {
             return 0;
         }
@@ -291,7 +301,7 @@ abstract contract MultiVotes is Votes, IMultiVotes {
     /**
      * @dev Returns number of units defaulted delegation `account` has.
      */
-    function getDefaultedUnits(address account) public virtual returns (uint256) {
+    function getDefaultedUnits(address account) public view virtual returns (uint256) {
         return _getAvaiableUnits(account);
     }
     
@@ -315,7 +325,7 @@ abstract contract MultiVotes is Votes, IMultiVotes {
         }
     }
 
-    function _getAvaiableUnits(address account) internal virtual returns (uint256) {
+    function _getAvaiableUnits(address account) internal view virtual returns (uint256) {
         return _getVotingUnits(account) - _usedUnits[account];
     }
     
