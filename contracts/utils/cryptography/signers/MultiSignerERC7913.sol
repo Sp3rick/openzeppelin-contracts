@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Contracts (last updated v5.4.0) (utils/cryptography/signers/MultiSignerERC7913.sol)
 
 pragma solidity ^0.8.26;
 
@@ -160,7 +161,8 @@ abstract contract MultiSignerERC7913 is AbstractSigner {
      *
      * Requirements:
      *
-     * * The {signers}'s length must be `>=` to the {threshold}. Throws {MultiSignerERC7913UnreachableThreshold} if not.
+     * * The {getSignerCount} must be greater or equal than to the {threshold}. Throws
+     * {MultiSignerERC7913UnreachableThreshold} if not.
      */
     function _validateReachableThreshold() internal view virtual {
         uint256 signersLength = _signers.length();
@@ -218,14 +220,14 @@ abstract contract MultiSignerERC7913 is AbstractSigner {
 
     /**
      * @dev Validates the signatures using the signers and their corresponding signatures.
-     * Returns whether whether the signers are authorized and the signatures are valid for the given hash.
+     * Returns whether the signers are authorized and the signatures are valid for the given hash.
      *
      * IMPORTANT: Sorting the signers by their `keccak256` hash will improve the gas efficiency of this function.
      * See {SignatureChecker-areValidSignaturesNow-bytes32-bytes[]-bytes[]} for more details.
      *
      * Requirements:
      *
-     * * The `signatures` arrays must be at least as large as the `signers` arrays. Panics otherwise.
+     * * The `signatures` and `signers` arrays must be equal in length. Returns false otherwise.
      */
     function _validateSignatures(
         bytes32 hash,
