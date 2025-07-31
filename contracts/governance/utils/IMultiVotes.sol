@@ -9,7 +9,7 @@ interface IMultiVotes is IVotes {
     /**
     * @dev Delegation units exceeded, introducing a risk of votes overflowing.
     */
-    error MultiVotesExceededAvaiableUnits(uint256 units, uint256 left);
+    error MultiVotesExceededAvailableUnits(uint256 units, uint256 left);
 
     /**
     * @dev Mismatch between number of given delegates and correspective units.
@@ -27,22 +27,12 @@ interface IMultiVotes is IVotes {
     error StartIsBiggerThanEnd(uint256 start, uint256 end);
 
     /**
-    * @dev Emitted when a delegate is added to a delegation list.
-    */
-    event DelegateAdded(address indexed delegator, address indexed delegate, uint256 units);
-
-    /**
-    * @dev Emitted when units of already exhisting delegate are modified.
+    * @dev Emitted when units assigned to a partial delegate are modified.
     */
     event DelegateModified(address indexed delegator, address indexed delegate, uint256 fromUnits, uint256 toUnits);
 
     /**
-    * @dev Emitted when a delegate is removed from a delegation list.
-    */
-    event DelegateRemoved(address indexed delegator, address indexed delegate, uint256 units);
-
-    /**
-    * @dev Returns `account` delegations starting from `start` to `end`.
+    * @dev Returns `account` delegations that has at least 1 voting unit from `start` to `end`.
     */
     function multiDelegates(address account, uint256 start, uint256 end) external view returns (address[] memory);
 
@@ -57,16 +47,6 @@ interface IMultiVotes is IVotes {
     function multiDelegateBySig(address[] calldata delegatess, uint256[] calldata units, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external;
 
     /**
-     * @dev Remove a list of delegates from delegates list of caller
-     */
-    function multiUnDelegate(address[] calldata delegatess) external;
-
-    /**
-     * @dev Multi undelegate votes from signer to `delegatess`.
-     */
-    function multiUnDelegateBySig(address[] calldata delegatess, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external;
-
-    /**
      * @dev Returns number of units a multi delegate of `account` has.
      *
      * NOTE: This function returns only the multi delegation value, defaulted units are not counted
@@ -74,8 +54,7 @@ interface IMultiVotes is IVotes {
     function getDelegatedUnits(address account, address delegatee) external view returns (uint256);
 
     /**
-     * @dev Returns number of remaining units that defaulted delegation on `account` has.
+     * @dev Returns number of unassigned units that `account` has. Free units are assigned to the Votes single delegate selected.
      */
-    function getDefaultedUnits(address account) external view returns (uint256);
-
+    function getFreeUnits(address account) external view returns (uint256);
 }
