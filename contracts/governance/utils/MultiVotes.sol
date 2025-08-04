@@ -42,7 +42,7 @@ abstract contract MultiVotes is Votes, IMultiVotes {
     }
 
     /**
-     * @dev Returns `account` multi delegations list starting from `start` to `end`.
+     * @dev Returns `account` partial delegations list starting from `start` to `end`.
      *
      * NOTE: Order may unexpectedly change if called in different transactions.
      * Trust the returned array only if you obtain it within a single transaction.
@@ -69,7 +69,7 @@ abstract contract MultiVotes is Votes, IMultiVotes {
     }
 
     /**
-     * @dev Use multi delegation mode and select delegates and corresponding power.
+     * @dev Use multi delegation mode and adds given delegates to the partial delegation list.
      */
     function multiDelegate(address[] calldata delegatees, uint256[] calldata units) public virtual {
         address account = _msgSender();
@@ -92,8 +92,8 @@ abstract contract MultiVotes is Votes, IMultiVotes {
             revert VotesExpiredSignature(expiry);
         }
 
-        bytes32 delegatesHash = keccak256(abi.encode(delegatees));
-        bytes32 unitsHash = keccak256(abi.encode(units));
+        bytes32 delegatesHash = keccak256(abi.encodePacked(delegatees));
+        bytes32 unitsHash = keccak256(abi.encodePacked(units));
         bytes32 structHash = keccak256(
             abi.encode(
                 MULTI_DELEGATION_TYPEHASH,
@@ -119,7 +119,7 @@ abstract contract MultiVotes is Votes, IMultiVotes {
      * Emits multiple events {IMultiVotes-DelegateAdded} and {IMultiVotes-DelegateModified}.
      */
     function _multiDelegate(address account, address[] calldata delegatees, uint256[] calldata unitsList) internal virtual {
-        require(delegatees.length == unitsList.length, MultiVotesDelegatesAndUnitsMismatch(delegatees, unitsList));
+        require(delegatees.length == unitsList.length, MultiVotesDelegatesAndUnitsMismatch(delegatees.length, unitsList.length));
         require(delegatees.length > 0, MultiVotesNoDelegatesGiven());
 
         uint256 givenUnits;
@@ -194,7 +194,8 @@ abstract contract MultiVotes is Votes, IMultiVotes {
         uint256 units
     ) internal virtual returns (uint256 difference, bool refunded) {
         uint256 oldUnits = _delegatesUnits[account][delegatee];
-        emit DelegateModified(account, delegatee, oldUnits, units);
+
+        if(oldUnits == units) return (0, false);
                 
         if(oldUnits > units) {
             difference = oldUnits - units;
@@ -206,6 +207,7 @@ abstract contract MultiVotes is Votes, IMultiVotes {
         }
 
         _delegatesUnits[account][delegatee] = units;
+        emit DelegateModified(account, delegatee, oldUnits, units);
         return (difference, refunded);
     }
 
@@ -234,9 +236,9 @@ abstract contract MultiVotes is Votes, IMultiVotes {
     }
 
     /**
-     * @dev Returns number of units a multi delegate of `account` has.
+     * @dev Returns number of units a partial delegate of `account` has.
      *
-     * NOTE: This function returns only the assigned partial delegation value, free units assignment are not included
+     * NOTE: This function returns only the partial delegation value, defaulted units are not counted
      */
     function getDelegatedUnits(address account, address delegatee) public view virtual returns (uint256) {
         if(!_accountHasDelegate(account, delegatee)) {

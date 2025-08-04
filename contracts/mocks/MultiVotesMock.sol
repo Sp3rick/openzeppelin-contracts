@@ -29,6 +29,7 @@ abstract contract MultiVotesMock is MultiVotes {
         _votingUnits[account] += votes;
         _transferVotingUnits(account, address(0), votes);
     }
+    
 }
 
 abstract contract MultiVotesTimestampMock is MultiVotesMock {

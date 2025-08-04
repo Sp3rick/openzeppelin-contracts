@@ -14,7 +14,7 @@ interface IMultiVotes is IVotes {
     /**
     * @dev Mismatch between number of given delegates and correspective units.
     */
-    error MultiVotesDelegatesAndUnitsMismatch(address[] delegates, uint256[] units);
+    error MultiVotesDelegatesAndUnitsMismatch(uint256 delegatesLength, uint256 unitsLength);
 
     /**
     * @dev Invalid operation, you should give at least one delegate.
@@ -32,12 +32,15 @@ interface IMultiVotes is IVotes {
     event DelegateModified(address indexed delegator, address indexed delegate, uint256 fromUnits, uint256 toUnits);
 
     /**
-    * @dev Returns `account` delegations that has at least 1 voting unit from `start` to `end`.
-    */
+     * @dev Returns `account` partial delegations list starting from `start` to `end`.
+     *
+     * NOTE: Order may unexpectedly change if called in different transactions.
+     * Trust the returned array only if you obtain it within a single transaction.
+     */
     function multiDelegates(address account, uint256 start, uint256 end) external view returns (address[] memory);
 
     /**
-     * @dev Use multi delegation mode and adds given delegates to the multi delegation list.
+     * @dev Use multi delegation mode and adds given delegates to the partial delegation list.
      */
     function multiDelegate(address[] calldata delegatess, uint256[] calldata units) external;
 
@@ -47,9 +50,9 @@ interface IMultiVotes is IVotes {
     function multiDelegateBySig(address[] calldata delegatess, uint256[] calldata units, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) external;
 
     /**
-     * @dev Returns number of units a multi delegate of `account` has.
+     * @dev Returns number of units a partial delegate of `account` has.
      *
-     * NOTE: This function returns only the multi delegation value, defaulted units are not counted
+     * NOTE: This function returns only the partial delegation value, defaulted units are not counted
      */
     function getDelegatedUnits(address account, address delegatee) external view returns (uint256);
 
