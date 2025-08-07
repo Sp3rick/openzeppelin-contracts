@@ -4,6 +4,9 @@ pragma solidity ^0.8.20;
 
 import {IVotes} from "./IVotes.sol";
 
+/**
+ * @dev Common interface for {ERC20MultiVotes} and other {MultiVotes}-enabled contracts.
+ */
 interface IMultiVotes is IVotes {
 
     /**
@@ -22,25 +25,20 @@ interface IMultiVotes is IVotes {
     error MultiVotesNoDelegatesGiven();
 
     /**
-    * @dev Invalid, start should be equal or smaller than end.
-    */
-    error StartIsBiggerThanEnd(uint256 start, uint256 end);
-
-    /**
     * @dev Emitted when units assigned to a partial delegate are modified.
     */
     event DelegateModified(address indexed delegator, address indexed delegate, uint256 fromUnits, uint256 toUnits);
 
     /**
-     * @dev Returns `account` partial delegations list starting from `start` to `end`.
+     * @dev Returns `account` partial delegations.
      *
-     * NOTE: Order may unexpectedly change if called in different transactions.
-     * Trust the returned array only if you obtain it within a single transaction.
+     * NOTE: Without a limit on partial delegations applyed, this call may consume too much gas and fail.
+     * Furthermore consider received list order pseudo-random
      */
-    function multiDelegates(address account, uint256 start, uint256 end) external view returns (address[] memory);
+    function multiDelegates(address account) external view returns (address[] memory);
 
     /**
-     * @dev Use multi delegation mode and adds given delegates to the partial delegation list.
+     * @dev Set delegates list with units assigned for each one
      */
     function multiDelegate(address[] calldata delegatess, uint256[] calldata units) external;
 

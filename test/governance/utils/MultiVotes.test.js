@@ -2,9 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture, mine } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { sum } = require('../../helpers/math');
 const { zip } = require('../../helpers/iterate');
-const time = require('../../helpers/time');
 
 const { shouldBehaveLikeMultiVotes } = require('./MultiVotes.behaivor');
 
@@ -41,7 +39,42 @@ describe('MultiVotes', function () {
 
       shouldBehaveLikeMultiVotes(AMOUNTS, { mode, fungible: true });
 
-      //TODO acutal test
+      describe('performs critical operations', function () {
+        beforeEach(async function () {
+          [this.delegator, this.delegatee, this.bob, this.alice, this.other] = this.accounts;
+          await mine();
+          await this.votes.$_mint(this.delegator, 100);
+          await this.votes.$_mint(this.bob, 100);  
+        });
+
+        it('mints alongside defaulted and partial delegation', async function () {
+          await this.votes.connect(this.delegator).multiDelegate([this.delegatee, this.bob], [1, 15]);
+          await this.votes.connect(this.delegator).delegate(this.delegatee);
+          await this.votes.$_mint(this.delegator, 200);
+
+          expect(await this.votes.$_getVotingUnits(this.delegator)).to.equal(300);
+          expect(await this.votes.getFreeUnits(this.delegator)).to.equal(284);
+          expect(await this.votes.getVotes(this.delegatee)).to.equal(285);
+        });
+
+        it('keeps coherent _accountHasDelegate state', async function () {
+          await this.votes.connect(this.delegator).multiDelegate([this.delegatee], [1]);
+          expect(await this.votes.$_accountHasDelegate(this.delegator, this.delegatee)).to.equal(true);
+          expect(await this.votes.$_accountHasDelegate(this.delegator, this.bob)).to.equal(false);
+
+          await this.votes.connect(this.delegator).multiDelegate([this.bob], [15]);
+          expect(await this.votes.$_accountHasDelegate(this.delegator, this.bob)).to.equal(true);
+          expect(await this.votes.$_accountHasDelegate(this.delegator, this.delegatee)).to.equal(true);
+
+          await this.votes.connect(this.delegator).multiDelegate([this.delegatee], [0]);
+          expect(await this.votes.$_accountHasDelegate(this.delegator, this.delegatee)).to.equal(false);
+          expect(await this.votes.$_accountHasDelegate(this.delegator, this.bob)).to.equal(true);
+
+          await this.votes.connect(this.delegator).multiDelegate([this.delegatee, this.bob], [50, 0]);
+          expect(await this.votes.$_accountHasDelegate(this.delegator, this.delegatee)).to.equal(true);
+          expect(await this.votes.$_accountHasDelegate(this.delegator, this.bob)).to.equal(false);
+        });
+      });
 
     });
 

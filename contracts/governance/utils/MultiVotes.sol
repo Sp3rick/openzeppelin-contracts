@@ -9,9 +9,13 @@ import {ECDSA} from "../../utils/cryptography/ECDSA.sol";
 import "./IMultiVotes.sol";
 
 /**
- * @dev Extension of {Votes} adding support for partial delegation.
- * You can give a fixed amount of voting power to each delegate and select one as "defaulted" wich takes all of the remaining votes
- * even when availableUnits votes changes
+ * @dev Extension of {Votes} with support for partial delegations.
+ * You can give a fixed amount of voting power to each delegate and select one as `defaulted` using {Votes} methods
+ * `defaulted` takes all of the remaining votes.
+ *
+ * NOTE: If inheriting from this contract there are things you should be carefull of
+ * multiDelegates getter is considered possibily failing for out of gas if too many partial delegates are assigned
+ * If you implement a limit for maximum delegates for each delegator, multiDelegates can be considered always working.
  */
 abstract contract MultiVotes is Votes, IMultiVotes {
 
@@ -42,34 +46,28 @@ abstract contract MultiVotes is Votes, IMultiVotes {
     }
 
     /**
-     * @dev Returns `account` partial delegations list starting from `start` to `end`.
-     *
-     * NOTE: Order may unexpectedly change if called in different transactions.
-     * Trust the returned array only if you obtain it within a single transaction.
+     * @inheritdoc Votes
      */
-    function multiDelegates(address account, uint256 start, uint256 end) public view virtual returns (address[] memory) {
-        uint256 maxLength = _delegatesList[account].length;
-        require(end >= start, StartIsBiggerThanEnd(start, end));
-        if(start >= maxLength) {
-            address[] memory empty = new address[](0);
-            return empty;
+    function _transferVotingUnits(address from, address to, uint256 amount) internal override virtual {
+        if(from != address(0)) {
+            uint256 freeUnits = getFreeUnits(from);
+            require(amount <= freeUnits, MultiVotesExceededAvailableUnits(amount, freeUnits));
         }
-
-        if (end >= maxLength) {
-            end = maxLength - 1;
-        }
-        uint256 length = (end + 1) - start;
-        address[] memory list = new address[](length);
-
-        for(uint256 i; i < length; i++) {
-            list[i] = _delegatesList[account][start + i];
-        }
-
-        return list;
+        super._transferVotingUnits(from, to, amount);
     }
 
     /**
-     * @dev Use multi delegation mode and adds given delegates to the partial delegation list.
+     * @dev Returns `account` partial delegations.
+     *
+     * NOTE: Without a limit on partial delegations applyed, this call may consume too much gas and fail.
+     * Furthermore consider received list order pseudo-random
+     */
+    function multiDelegates(address account) public view virtual returns (address[] memory) {
+        return _delegatesList[account];
+    }
+
+    /**
+     * @dev Set delegates list with units assigned for each one
      */
     function multiDelegate(address[] calldata delegatees, uint256[] calldata units) public virtual {
         address account = _msgSender();
@@ -172,7 +170,7 @@ abstract contract MultiVotes is Votes, IMultiVotes {
      *
      * NOTE: this function does not automatically update _usedUnits and should never receive 0 `units` value
      */
-    function _addDelegate(address account, address delegatee, uint256 units) internal virtual {
+    function _addDelegate(address account, address delegatee, uint256 units) private {
         _delegatesUnits[account][delegatee] = units;
         _delegatesIndex[account][delegatee] = _delegatesList[account].length;
         _delegatesList[account].push(delegatee);
@@ -192,7 +190,7 @@ abstract contract MultiVotes is Votes, IMultiVotes {
         address account,
         address delegatee,
         uint256 units
-    ) internal virtual returns (uint256 difference, bool refunded) {
+    ) private returns (uint256 difference, bool refunded) {
         uint256 oldUnits = _delegatesUnits[account][delegatee];
 
         if(oldUnits == units) return (0, false);
@@ -218,7 +216,7 @@ abstract contract MultiVotes is Votes, IMultiVotes {
      *
      * NOTE: this function does not automatically update _usedUnits
      */
-    function _removeDelegate(address account, address delegatee) internal virtual returns (uint256) {
+    function _removeDelegate(address account, address delegatee) private returns (uint256) {
         if(!_accountHasDelegate(account, delegatee)) return 0;
 
         uint256 delegateIndex = _delegatesIndex[account][delegatee];

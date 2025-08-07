@@ -26,8 +26,8 @@ abstract contract MultiVotesMock is MultiVotes {
     }
 
     function _burn(address account, uint256 votes) internal {
-        _votingUnits[account] += votes;
         _transferVotingUnits(account, address(0), votes);
+        _votingUnits[account] -= votes;
     }
     
 }
