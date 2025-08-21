@@ -2,7 +2,7 @@
 // OpenZeppelin Contracts (last updated v5.5.0) (governance/utils/IMultiVotes.sol)
 pragma solidity ^0.8.26;
 
-import "./IVotes.sol";
+import {IVotes} from "./IVotes.sol";
 
 /**
  * @dev Common interface for {ERC20MultiVotes} and other {MultiVotes}-enabled contracts.

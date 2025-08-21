@@ -6,7 +6,7 @@ import {Checkpoints} from "../../utils/structs/Checkpoints.sol";
 import {Votes} from "./Votes.sol";
 import {SafeCast} from "../../utils/math/SafeCast.sol";
 import {ECDSA} from "../../utils/cryptography/ECDSA.sol";
-import "./IMultiVotes.sol";
+import {IMultiVotes} from "./IMultiVotes.sol";
 
 /**
  * @dev Extension of {Votes} with support for partial delegations.
