@@ -283,12 +283,12 @@ function shouldBehaveLikeVotes(tokens, { mode = 'blocknumber', fungible = true }
       it('burns', async function () {
         await this.votes.$_burn(this.delegator, 50);
         expect(await this.votes.$_getVotingUnits(this.delegator)).to.equal(50);
-      })
+      });
 
-      it('rejects more than avaiable burn', async function () {
+      it('rejects more than available burn', async function () {
         await expect(this.votes.$_burn(this.delegator, 101)).to.be.reverted;
-      })
-    })
+      });
+    });
 
     // The following tests are an adaptation of
     // https://github.com/compound-finance/compound-protocol/blob/master/tests/Governance/CompTest.js.

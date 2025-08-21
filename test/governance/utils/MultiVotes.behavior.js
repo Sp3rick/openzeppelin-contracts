@@ -7,41 +7,19 @@ const time = require('../../helpers/time');
 
 const { shouldBehaveLikeVotes } = require('./Votes.behavior');
 
-const MULTI_DELEGATION_TYPE = "MultiDelegation(address[] delegatees,uint256[] units,uint256 nonce,uint256 expiry)";
-const MULTI_DELEGATION_TYPEHASH = ethers.keccak256(ethers.toUtf8Bytes(MULTI_DELEGATION_TYPE));
-const abiCoder = new ethers.AbiCoder();
-const getSigner = (delegatees, units, nonce, expiry, v, r, s, domain) => {
-  const delegatesHash = ethers.keccak256(ethers.solidityPacked(["address[]"], [delegatees]));
-  const unitsHash = ethers.keccak256(ethers.solidityPacked(["uint256[]"], [units]));
-  const structHash = ethers.keccak256(
-    abiCoder.encode(
-      ["bytes32", "bytes32", "bytes32", "uint256", "uint256"],
-      [MULTI_DELEGATION_TYPEHASH, delegatesHash, unitsHash, nonce, expiry]
-    )
-  );
-  const domainSeparator = ethers.TypedDataEncoder.hashDomain(domain);
-  const digest = ethers.keccak256(
-    ethers.solidityPacked(
-      ["string", "bytes32", "bytes32"],
-      ["\x19\x01", domainSeparator, structHash]
-    )
-  );
-  return ethers.recoverAddress(digest, { v, r, s });
-}
-
 function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = true }) {
   beforeEach(async function () {
     [this.delegator, this.delegatee, this.bob, this.alice, this.other] = this.accounts;
     this.domain = await getDomain(this.votes);
   });
 
-  shouldBehaveLikeVotes(tokens, {mode, fungible});
+  shouldBehaveLikeVotes(tokens, { mode, fungible });
 
   describe('run multivotes workflow', function () {
     beforeEach(async function () {
       await mine();
       await this.votes.$_mint(this.delegator, 110);
-      await this.votes.$_mint(this.bob, 110);    
+      await this.votes.$_mint(this.bob, 110);
       await this.votes.$_burn(this.delegator, 10);
       await this.votes.$_burn(this.bob, 10);
     });
@@ -51,30 +29,31 @@ function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = t
     });
 
     it('defaulted delegate starts with zero address', async function () {
-      expect(await this.votes.delegates(this.delegator)).to.equal("0x0000000000000000000000000000000000000000");
+      expect(await this.votes.delegates(this.delegator)).to.equal('0x0000000000000000000000000000000000000000');
     });
 
     describe('delegation with signature', function () {
-
       it('rejects delegates and units mismatch', async function () {
         expect(this.votes.connect(this.delegator).multiDelegate([this.delegatee], [1, 15]))
-        .to.be.revertedWithCustomError(this.votes, 'MultiVotesDelegatesAndUnitsMismatch')
-        .withArgs(1, 2);
+          .to.be.revertedWithCustomError(this.votes, 'MultiVotesDelegatesAndUnitsMismatch')
+          .withArgs(1, 2);
 
         expect(this.votes.connect(this.delegator).multiDelegate([this.delegatee, this.bob], [1]))
-        .to.be.revertedWithCustomError(this.votes, 'MultiVotesDelegatesAndUnitsMismatch')
-        .withArgs(2, 1);
+          .to.be.revertedWithCustomError(this.votes, 'MultiVotesDelegatesAndUnitsMismatch')
+          .withArgs(2, 1);
       });
 
       it('rejects no delegates given', async function () {
-        await expect(this.votes.connect(this.delegator).multiDelegate([], []))
-        .to.be.revertedWithCustomError(this.votes, 'MultiVotesNoDelegatesGiven');
+        await expect(this.votes.connect(this.delegator).multiDelegate([], [])).to.be.revertedWithCustomError(
+          this.votes,
+          'MultiVotesNoDelegatesGiven',
+        );
       });
 
-      it('rejects delegation exceeding avaiable units', async function () {
+      it('rejects delegation exceeding available units', async function () {
         await expect(this.votes.connect(this.delegator).multiDelegate([this.delegatee, this.bob], [90, 15]))
-        .to.be.revertedWithCustomError(this.votes, 'MultiVotesExceededAvailableUnits')
-        .withArgs(105, 100);
+          .to.be.revertedWithCustomError(this.votes, 'MultiVotesExceededAvailableUnits')
+          .withArgs(105, 100);
       });
 
       it('partial delegation', async function () {
@@ -95,19 +74,19 @@ function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = t
         expect(await this.votes.getDelegatedUnits(this.delegator, this.delegatee)).to.equal(1);
         expect(await this.votes.getDelegatedUnits(this.delegator, this.bob)).to.equal(15);
         expect(await this.votes.getFreeUnits(this.delegator)).to.equal(84);
-        
+
         expect(await this.votes.getVotes(this.delegatee)).to.equal(1);
         expect(await this.votes.getVotes(this.bob)).to.equal(15);
       });
 
       it('partial delegation stacking', async function () {
         await this.votes.connect(this.delegator).multiDelegate([this.delegatee, this.bob], [1, 15]);
-        const tx = await this.votes.connect(this.delegator).multiDelegate([this.alice], [20])
+        const tx = await this.votes.connect(this.delegator).multiDelegate([this.alice], [20]);
         await expect(tx)
           .to.emit(this.votes, 'DelegateModified')
           .withArgs(this.delegator, this.alice, 0, 20)
           .to.emit(this.votes, 'DelegateVotesChanged')
-          .withArgs(this.alice, 0, 20)
+          .withArgs(this.alice, 0, 20);
 
         let multiDelegates = await this.votes.multiDelegates(this.delegator);
         expect([...multiDelegates]).to.have.members([this.delegatee.address, this.bob.address, this.alice.address]);
@@ -120,7 +99,7 @@ function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = t
         expect(await this.votes.getVotes(this.delegatee)).to.equal(1);
         expect(await this.votes.getVotes(this.bob)).to.equal(15);
         expect(await this.votes.getVotes(this.alice)).to.equal(20);
-      })
+      });
 
       it('partial delegation votes stacking', async function () {
         await this.votes.connect(this.delegator).multiDelegate([this.alice], [20]);
@@ -137,7 +116,7 @@ function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = t
         expect(await this.votes.getFreeUnits(this.bob)).to.equal(5);
 
         expect(await this.votes.getVotes(this.alice)).to.equal(115);
-      })
+      });
 
       it('partial delegation removal', async function () {
         await this.votes.connect(this.delegator).multiDelegate([this.delegatee, this.bob], [1, 15]);
@@ -146,8 +125,8 @@ function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = t
           .to.emit(this.votes, 'DelegateModified')
           .withArgs(this.delegator, this.delegatee, 1, 0)
           .to.emit(this.votes, 'DelegateVotesChanged')
-          .withArgs(this.delegatee, 1, 0)
-        
+          .withArgs(this.delegatee, 1, 0);
+
         let multiDelegates = await this.votes.multiDelegates(this.delegator);
         expect([...multiDelegates]).to.have.members([this.bob.address]);
 
@@ -186,9 +165,7 @@ function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = t
       it('partial delegation unchanged', async function () {
         await this.votes.connect(this.delegator).multiDelegate([this.delegatee, this.bob], [1, 15]);
         const tx = await this.votes.connect(this.delegator).multiDelegate([this.delegatee, this.other], [1, 0]);
-        await expect(tx)
-          .to.not.emit(this.votes, 'DelegateModified')
-          .to.not.emit(this.votes, 'DelegateVotesChanged');
+        await expect(tx).to.not.emit(this.votes, 'DelegateModified').to.not.emit(this.votes, 'DelegateVotesChanged');
 
         let multiDelegates = await this.votes.multiDelegates(this.delegator);
         expect([...multiDelegates]).to.have.members([this.delegatee.address, this.bob.address]);
@@ -224,7 +201,7 @@ function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = t
           .to.emit(this.votes, 'DelegateVotesChanged')
           .withArgs(this.delegatee, 90, 0)
           .to.emit(this.votes, 'DelegateVotesChanged')
-          .withArgs(this.alice, 0, 90)
+          .withArgs(this.alice, 0, 90);
 
         expect(await this.votes.getDelegatedUnits(this.delegator, this.other)).to.equal(10);
         expect(await this.votes.getVotes(this.delegatee)).to.equal(0);
@@ -237,7 +214,7 @@ function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = t
           .to.emit(this.votes, 'DelegateChanged')
           .withArgs(this.delegator, ethers.ZeroAddress, this.delegatee)
           .to.emit(this.votes, 'DelegateVotesChanged')
-          .withArgs(this.delegatee, 5, 95)
+          .withArgs(this.delegatee, 5, 95);
 
         expect(await this.votes.getDelegatedUnits(this.delegator, this.delegatee)).to.equal(5);
         expect(await this.votes.getFreeUnits(this.delegator)).to.equal(90);
@@ -247,6 +224,26 @@ function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = t
 
       describe('with signature', function () {
         const nonce = 0n;
+
+        const MULTI_DELEGATION_TYPE =
+          'MultiDelegation(address[] delegatees,uint256[] units,uint256 nonce,uint256 expiry)';
+        const MULTI_DELEGATION_TYPEHASH = ethers.keccak256(ethers.toUtf8Bytes(MULTI_DELEGATION_TYPE));
+        const abiCoder = new ethers.AbiCoder();
+        const getSigner = (delegatees, units, nonce, expiry, v, r, s, domain) => {
+          const delegatesHash = ethers.keccak256(ethers.solidityPacked(['address[]'], [delegatees]));
+          const unitsHash = ethers.keccak256(ethers.solidityPacked(['uint256[]'], [units]));
+          const structHash = ethers.keccak256(
+            abiCoder.encode(
+              ['bytes32', 'bytes32', 'bytes32', 'uint256', 'uint256'],
+              [MULTI_DELEGATION_TYPEHASH, delegatesHash, unitsHash, nonce, expiry],
+            ),
+          );
+          const domainSeparator = ethers.TypedDataEncoder.hashDomain(domain);
+          const digest = ethers.keccak256(
+            ethers.solidityPacked(['string', 'bytes32', 'bytes32'], ['\x19\x01', domainSeparator, structHash]),
+          );
+          return ethers.recoverAddress(digest, { v, r, s });
+        };
 
         it('accept signed partial delegation', async function () {
           const { r, s, v } = await this.delegator
@@ -269,7 +266,7 @@ function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = t
             .to.emit(this.votes, 'DelegateModified')
             .withArgs(this.delegator, this.delegatee, 0, 15)
             .to.emit(this.votes, 'DelegateVotesChanged')
-            .withArgs(this.delegatee, 0, 15)
+            .withArgs(this.delegatee, 0, 15);
 
           let multiDelegates = await this.votes.multiDelegates(this.delegator);
           expect([...multiDelegates]).to.have.members([this.delegatee.address]);
@@ -432,28 +429,28 @@ function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = t
             .withArgs(expiry);
         });
       });
-    })
+    });
 
     describe('burning', async function () {
       it('burns', async function () {
         await this.votes.$_burn(this.delegator, 50);
         expect(await this.votes.getFreeUnits(this.delegator)).to.equal(50);
         expect(await this.votes.$_getVotingUnits(this.delegator)).to.equal(50);
-      })
+      });
 
-      it('rejects more than avaiable burn', async function () {
+      it('rejects more than available burn', async function () {
         await expect(this.votes.$_burn(this.delegator, 101))
           .to.be.revertedWithCustomError(this.votes, 'MultiVotesExceededAvailableUnits')
           .withArgs(101, 100);
-      })
+      });
 
       it('rejects burn of assigned units', async function () {
         await this.votes.connect(this.delegator).multiDelegate([this.delegatee, this.other], [5, 35]);
         await expect(this.votes.$_burn(this.delegator, 61))
           .to.be.revertedWithCustomError(this.votes, 'MultiVotesExceededAvailableUnits')
           .withArgs(61, 60);
-      })
-    })
+      });
+    });
   });
 }
 

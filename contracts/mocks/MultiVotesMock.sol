@@ -5,7 +5,6 @@ pragma solidity ^0.8.20;
 import {MultiVotes} from "../governance/utils/MultiVotes.sol";
 
 abstract contract MultiVotesMock is MultiVotes {
-
     mapping(address voter => uint256) private _votingUnits;
 
     function getTotalSupply() public view returns (uint256) {
@@ -29,11 +28,9 @@ abstract contract MultiVotesMock is MultiVotes {
         _transferVotingUnits(account, address(0), votes);
         _votingUnits[account] -= votes;
     }
-    
 }
 
 abstract contract MultiVotesTimestampMock is MultiVotesMock {
-
     function clock() public view override returns (uint48) {
         return uint48(block.timestamp);
     }
