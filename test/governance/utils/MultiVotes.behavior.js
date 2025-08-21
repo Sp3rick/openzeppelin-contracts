@@ -24,7 +24,7 @@ function shouldBehaveLikeMultiVotes(tokens, { mode = 'blocknumber', fungible = t
       await this.votes.$_burn(this.bob, 10);
     });
 
-    it('not exhisting delegates has zero assigned units', async function () {
+    it('not existing delegates has zero assigned units', async function () {
       expect(await this.votes.getDelegatedUnits(this.delegator, this.delegatee)).to.be.equal(0);
     });
 
